@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>智能简历问答系统</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=Noto+Sans+SC:wght@400;500;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="/static/styles.css" />
+  </head>
+  <body>
+    <div class="page-shell">
+      <header class="hero">
+        <div class="hero-copy">
+          <p class="eyebrow">Resume RAG Demo</p>
+          <h1>智能简历问答系统</h1>
+          <p class="hero-text">
+            前端现在会直接调用后端 API，使用真实的 Ollama 检索链路和 DeepSeek 问答能力。
+          </p>
+          <div class="hero-actions">
+            <button class="primary-button" id="runPresetButton">试试默认问题</button>
+            <span class="hint" id="apiStatus">正在连接后端服务...</span>
+          </div>
+        </div>
+
+        <div class="hero-panel">
+          <div class="status-card">
+            <span class="status-label">本地检索链路</span>
+            <strong>Ollama + Chroma</strong>
+            <p>本地向量化与检索阶段会临时禁用代理，避免请求误走代理。</p>
+          </div>
+          <div class="status-card accent">
+            <span class="status-label">新增能力</span>
+            <strong>上传文件入库</strong>
+            <p>支持 txt、pdf、docx 文件，上传后会自动切分为知识片段并加入当前知识库。</p>
+          </div>
+        </div>
+      </header>
+
+      <section class="overview-grid">
+        <article class="metric-card">
+          <span>知识片段</span>
+          <strong id="docCount">0</strong>
+          <p>从后端接口实时读取预设知识片段与上传内容</p>
+        </article>
+        <article class="metric-card">
+          <span>检索模式</span>
+          <strong>MMR</strong>
+          <p>兼顾相关性和多样性，减少关键片段被漏掉</p>
+        </article>
+        <article class="metric-card">
+          <span>答复策略</span>
+          <strong id="answerSourceBadge">后端中</strong>
+          <p>DeepSeek 不可用时，后端会回退到基于检索结果的本地回答</p>
+        </article>
+      </section>
+
+      <main class="workspace workspace-single">
+        <section class="panel ask-panel">
+          <div class="panel-head">
+            <p class="panel-kicker">Ask</p>
+            <h2>提一个项目问题</h2>
+          </div>
+
+          <label class="input-label" for="questionInput">问题输入</label>
+          <textarea id="questionInput" rows="4">请总结这个项目的目标、技术栈和优化点。</textarea>
+
+          <div class="preset-row">
+            <button class="chip-button" data-question="这个项目的目标是什么？">项目目标</button>
+            <button class="chip-button" data-question="这个项目的技术栈是什么？">技术栈</button>
+            <button class="chip-button" data-question="这个项目的优化点是什么？">优化点</button>
+          </div>
+
+          <button class="primary-button wide" id="searchButton">调用后端问答</button>
+
+          <div class="flow-card">
+            <p class="flow-title">后端执行流程</p>
+            <ol class="flow-list">
+              <li>前端提交问题到 `/api/ask`</li>
+              <li>后端执行向量检索并返回命中文档</li>
+              <li>可用时调用 DeepSeek 生成回答</li>
+              <li>若远程模型失败，自动回退到本地规则回答</li>
+            </ol>
+          </div>
+
+          <div class="upload-card">
+            <p class="flow-title">添加文件到知识库</p>
+            <p class="upload-note">支持 `txt`、`pdf`、`docx`，上传后会自动切分并加入当前知识库。</p>
+            <input id="fileInput" class="file-input" type="file" accept=".txt,.pdf,.docx,.doc" />
+            <button class="secondary-button" id="uploadButton">上传并加入知识库</button>
+            <p id="uploadStatus" class="upload-status">支持 txt / pdf / docx。</p>
+          </div>
+        </section>
+      </main>
+
+      <section class="answer-panel panel">
+        <div class="panel-head">
+          <p class="panel-kicker">Answer</p>
+          <h2>系统回答</h2>
+        </div>
+        <div id="answerBox" class="answer-box">等待后端返回结果...</div>
+      </section>
+
+      <section class="knowledge-panel panel">
+        <div class="panel-head">
+          <p class="panel-kicker">Knowledge Base</p>
+          <h2>预设知识片段</h2>
+        </div>
+        <div id="knowledgeGrid" class="knowledge-grid"></div>
+      </section>
+    </div>
+
+    <script src="/static/app.js"></script>
+  </body>
+</html>
