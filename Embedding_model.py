@@ -56,6 +56,18 @@ def retry_ollama_call(func, retries: int = 3, delay: int = 2):
     raise last_error
 
 
+def unique_documents(docs):
+    seen_ids = set()
+    unique_docs = []
+    for doc in docs:
+        doc_id = doc.metadata.get("id")
+        if doc_id in seen_ids:
+            continue
+        seen_ids.add(doc_id)
+        unique_docs.append(doc)
+    return unique_docs
+
+
 embedding_model_name = get_env("EMBEDDING_MODEL")
 deepseek_api_key = get_env("DEEPSEEK_API_KEY")
 deepseek_base_url = get_env("DEEPSEEK_API_BASE_URL")
@@ -104,8 +116,18 @@ with disable_proxy_temporarily():
         )
     )
 
-    retriever = vectorstore.as_retriever(search_kwargs={"k": 2})
-    retrieved_docs = retry_ollama_call(lambda: retriever.invoke(question))
+    retriever = vectorstore.as_retriever(search_type="mmr", search_kwargs={"k": 3, "fetch_k": 5})
+    retrieval_queries = [
+        question,
+        "这个项目的目标是什么？",
+        "这个项目的技术栈是什么？",
+        "这个项目的优化点是什么？",
+    ]
+    retrieved_docs = []
+    for retrieval_query in retrieval_queries:
+        docs_for_query = retry_ollama_call(lambda q=retrieval_query: retriever.invoke(q))
+        retrieved_docs.extend(docs_for_query)
+    retrieved_docs = unique_documents(retrieved_docs)
 
 print("\n已恢复代理配置。")
 print("\n检索到的文档：")
