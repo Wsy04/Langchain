@@ -1,0 +1,13 @@
+{
+  "goal": "我想在3个月内通过软考中级软件设计师考试",
+  "current_level": "基础一般，做题经验少",
+  "start_date": "2026-03-01",
+  "end_date": "2026-05-31",
+  "daily_hours": 2,
+  "plan_type": "exam_preparation",
+  "weak_subjects": [
+    "算法",
+    "系统设计"
+  ],
+  "extra_constraints": "工作日每天2小时，周末每天4小时，希望每两周有一次复盘"
+}

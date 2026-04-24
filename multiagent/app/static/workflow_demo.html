@@ -1,0 +1,490 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Agent 工作流验证</title>
+  <style>
+    :root {
+      --bg: #f5f7fa;
+      --surface: #ffffff;
+      --ink: #20242a;
+      --muted: #667085;
+      --line: #d7dde6;
+      --accent: #1f7a5a;
+      --accent-dark: #166044;
+      --warn: #a15c00;
+      --bad: #b42318;
+      --soft: #eef8f3;
+      --code: #111827;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background: var(--bg);
+      color: var(--ink);
+      font-family: Arial, "Microsoft YaHei", sans-serif;
+    }
+
+    main {
+      width: min(1280px, calc(100% - 32px));
+      margin: 0 auto;
+      padding: 24px 0;
+    }
+
+    header {
+      display: flex;
+      align-items: end;
+      justify-content: space-between;
+      gap: 16px;
+      margin-bottom: 16px;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: 28px;
+      line-height: 1.2;
+    }
+
+    h2 {
+      margin: 0 0 12px;
+      font-size: 18px;
+    }
+
+    .status {
+      min-width: 140px;
+      padding: 8px 12px;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      background: var(--surface);
+      color: var(--muted);
+      text-align: center;
+      font-size: 14px;
+    }
+
+    .layout {
+      display: grid;
+      grid-template-columns: minmax(330px, 420px) minmax(0, 1fr);
+      gap: 16px;
+      align-items: start;
+    }
+
+    section {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--surface);
+      padding: 16px;
+    }
+
+    form {
+      display: grid;
+      gap: 13px;
+    }
+
+    label {
+      display: grid;
+      gap: 6px;
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    input,
+    textarea,
+    select {
+      width: 100%;
+      min-height: 40px;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      padding: 9px 10px;
+      color: var(--ink);
+      background: #fff;
+      font: inherit;
+      font-size: 14px;
+    }
+
+    textarea {
+      min-height: 76px;
+      resize: vertical;
+    }
+
+    .row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+
+    .actions {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+
+    button {
+      min-height: 42px;
+      border: 0;
+      border-radius: 6px;
+      background: var(--accent);
+      color: #fff;
+      font: inherit;
+      font-weight: 700;
+      cursor: pointer;
+    }
+
+    button.secondary {
+      background: #315267;
+    }
+
+    button:hover { background: var(--accent-dark); }
+    button.secondary:hover { background: #263f50; }
+    button:disabled { cursor: progress; opacity: .68; }
+
+    .summary {
+      display: grid;
+      grid-template-columns: repeat(5, minmax(0, 1fr));
+      gap: 10px;
+      margin-bottom: 14px;
+    }
+
+    .metric {
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      padding: 10px;
+      background: #fbfcfd;
+    }
+
+    .metric span {
+      display: block;
+      color: var(--muted);
+      font-size: 12px;
+      margin-bottom: 6px;
+    }
+
+    .metric strong {
+      display: block;
+      font-size: 20px;
+      line-height: 1.15;
+      word-break: break-word;
+    }
+
+    .timeline {
+      display: grid;
+      gap: 10px;
+      margin-bottom: 14px;
+    }
+
+    .agent {
+      display: grid;
+      grid-template-columns: 150px minmax(0, 1fr);
+      gap: 12px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 12px;
+      background: #fbfcfd;
+    }
+
+    .agent-name {
+      display: grid;
+      align-content: start;
+      gap: 6px;
+      font-weight: 700;
+    }
+
+    .badge {
+      width: fit-content;
+      padding: 4px 7px;
+      border-radius: 999px;
+      background: var(--soft);
+      color: var(--accent-dark);
+      font-size: 12px;
+      font-weight: 700;
+    }
+
+    .badge.warn {
+      background: #fff5e6;
+      color: var(--warn);
+    }
+
+    .badge.bad {
+      background: #fff1f0;
+      color: var(--bad);
+    }
+
+    .agent pre,
+    .raw pre {
+      margin: 0;
+      overflow: auto;
+      border-radius: 6px;
+      padding: 10px;
+      background: var(--code);
+      color: #e5e7eb;
+      font-size: 12px;
+      line-height: 1.5;
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+
+    .raw pre {
+      min-height: 220px;
+      max-height: 520px;
+    }
+
+    .tabs {
+      display: flex;
+      gap: 8px;
+      margin: 0 0 10px;
+    }
+
+    .tab {
+      min-height: 34px;
+      padding: 0 12px;
+      background: #e8edf3;
+      color: var(--ink);
+    }
+
+    .tab.active {
+      background: var(--accent);
+      color: #fff;
+    }
+
+    .error {
+      margin: 0 0 12px;
+      color: var(--bad);
+      font-weight: 700;
+    }
+
+    @media (max-width: 980px) {
+      main { width: min(100% - 20px, 760px); padding: 18px 0; }
+      header,
+      .layout,
+      .row,
+      .actions,
+      .summary,
+      .agent {
+        display: grid;
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <header>
+      <h1>Agent 工作流验证</h1>
+      <div class="status" id="runStatus">Ready</div>
+    </header>
+
+    <div class="layout">
+      <section>
+        <form id="form">
+          <label>学习目标<textarea name="goal" required>我想在3个月内通过软考中级软件设计师考试</textarea></label>
+          <label>当前水平<textarea name="current_level" required>基础一般，做题经验少</textarea></label>
+          <div class="row">
+            <label>开始日期<input name="start_date" type="date" value="2026-03-01" required></label>
+            <label>结束日期<input name="end_date" type="date" value="2026-05-31" required></label>
+          </div>
+          <div class="row">
+            <label>每日小时<input name="daily_hours" type="number" min="0.5" step="0.5" value="2" required></label>
+            <label>计划类型<select name="plan_type"><option value="exam_preparation">考试备考</option><option value="skill_learning">技能学习</option><option value="project_practice">项目实践</option></select></label>
+          </div>
+          <label>薄弱项<input name="weak_subjects" value="算法, 系统设计"></label>
+          <label>额外约束<textarea name="extra_constraints">工作日每天2小时，周末每天4小时，希望每两周有一次复盘</textarea></label>
+          <div class="actions">
+            <button id="runFull" type="submit">运行完整流程</button>
+            <button id="runOptimizer" class="secondary" type="button">验证优化路径</button>
+          </div>
+        </form>
+      </section>
+
+      <section>
+        <h2>执行结果</h2>
+        <p class="error" id="error" hidden></p>
+        <div class="summary">
+          <div class="metric"><span>任务 ID</span><strong id="taskId">-</strong></div>
+          <div class="metric"><span>最终状态</span><strong id="finalStatus">-</strong></div>
+          <div class="metric"><span>校验结果</span><strong id="validation">-</strong></div>
+          <div class="metric"><span>周计划数</span><strong id="weekCount">-</strong></div>
+          <div class="metric"><span>Optimizer</span><strong id="optimizerStatus">-</strong></div>
+        </div>
+
+        <div class="timeline" id="dataFlow"></div>
+
+        <div class="timeline" id="timeline"></div>
+
+        <div class="raw">
+          <div class="tabs">
+            <button class="tab active" type="button" data-view="plan">计划</button>
+            <button class="tab" type="button" data-view="trace">Trace</button>
+            <button class="tab" type="button" data-view="raw">Raw</button>
+          </div>
+          <pre id="rawOutput">{}</pre>
+        </div>
+      </section>
+    </div>
+  </main>
+
+  <script>
+    const form = document.querySelector("#form");
+    const runFull = document.querySelector("#runFull");
+    const runOptimizer = document.querySelector("#runOptimizer");
+    const runStatus = document.querySelector("#runStatus");
+    const errorEl = document.querySelector("#error");
+    const taskId = document.querySelector("#taskId");
+    const finalStatus = document.querySelector("#finalStatus");
+    const validation = document.querySelector("#validation");
+    const weekCount = document.querySelector("#weekCount");
+    const optimizerStatus = document.querySelector("#optimizerStatus");
+    const dataFlow = document.querySelector("#dataFlow");
+    const timeline = document.querySelector("#timeline");
+    const rawOutput = document.querySelector("#rawOutput");
+    const tabs = Array.from(document.querySelectorAll(".tab"));
+    let lastData = null;
+    let activeView = "plan";
+
+    function splitSubjects(value) {
+      return value.split(/[,\uFF0C]/).map((item) => item.trim()).filter(Boolean);
+    }
+
+    function getPayload() {
+      const formData = new FormData(form);
+      return {
+        goal: formData.get("goal"),
+        current_level: formData.get("current_level"),
+        start_date: formData.get("start_date"),
+        end_date: formData.get("end_date"),
+        daily_hours: Number(formData.get("daily_hours")),
+        plan_type: formData.get("plan_type"),
+        weak_subjects: splitSubjects(formData.get("weak_subjects") || ""),
+        extra_constraints: formData.get("extra_constraints") || null,
+      };
+    }
+
+    function setBusy(isBusy) {
+      runFull.disabled = isBusy;
+      runOptimizer.disabled = isBusy;
+      runStatus.textContent = isBusy ? "Running" : "Ready";
+    }
+
+    function badgeClass(item) {
+      if (item.llm_error) return "badge warn";
+      if (item.status !== "completed") return "badge bad";
+      return "badge";
+    }
+
+    function renderTimeline(trace) {
+      timeline.innerHTML = "";
+      if (!trace || trace.length === 0) {
+        timeline.innerHTML = "<div class='agent'><div class='agent-name'>No Trace</div><pre>[]</pre></div>";
+        return;
+      }
+
+      trace.forEach((item, index) => {
+        const node = document.createElement("article");
+        node.className = "agent";
+        const source = item.source ? `source: ${item.source}` : "source: rule";
+        node.innerHTML = `
+          <div class="agent-name">
+            <span>${index + 1}. ${item.node || "Agent"}</span>
+            <span class="${badgeClass(item)}">${item.status || "-"}</span>
+            <span class="badge ${item.llm_error ? "warn" : ""}">${source}</span>
+          </div>
+          <pre>${JSON.stringify(item, null, 2)}</pre>
+        `;
+        timeline.appendChild(node);
+      });
+    }
+
+    function renderDataFlow(summary) {
+      const flow = summary?.data_flow || {};
+      const items = [
+        ["Analyzer -> Planner", flow.analyzer_to_planner],
+        ["Planner -> Validator", flow.planner_to_validator],
+        ["Validator Completed", flow.validator_completed],
+        ["Validator -> Optimizer", flow.validator_to_optimizer],
+        ["Optimizer -> Validator", flow.optimizer_to_validator],
+        ["Retry Count", summary?.retry_count ?? 0],
+      ];
+      dataFlow.innerHTML = "";
+      const node = document.createElement("article");
+      node.className = "agent";
+      node.innerHTML = `
+        <div class="agent-name">
+          <span>数据传递</span>
+          <span class="badge">state</span>
+        </div>
+        <pre>${JSON.stringify(Object.fromEntries(items), null, 2)}</pre>
+      `;
+      dataFlow.appendChild(node);
+    }
+
+    function renderRaw() {
+      if (!lastData) {
+        rawOutput.textContent = "{}";
+        return;
+      }
+      if (activeView === "trace") {
+        rawOutput.textContent = JSON.stringify(lastData.trace || [], null, 2);
+      } else if (activeView === "raw") {
+        rawOutput.textContent = JSON.stringify(lastData, null, 2);
+      } else {
+        rawOutput.textContent = JSON.stringify(lastData.plan || {}, null, 2);
+      }
+    }
+
+    function render(data) {
+      lastData = data;
+      taskId.textContent = data.task_id || "-";
+      finalStatus.textContent = data.status || "-";
+      validation.textContent = data.validation_result?.passed ? "passed" : "failed";
+      weekCount.textContent = data.plan?.weekly_plan?.length ?? "-";
+      optimizerStatus.textContent = data.workflow_summary?.optimizer_executed ? "executed" : "skipped";
+      renderDataFlow(data.workflow_summary);
+      renderTimeline(data.trace || []);
+      renderRaw();
+    }
+
+    async function run(endpoint) {
+      errorEl.hidden = true;
+      setBusy(true);
+      try {
+        const response = await fetch(endpoint, {
+          method: "POST",
+          headers: {"Content-Type": "application/json"},
+          body: JSON.stringify(getPayload()),
+        });
+        const body = await response.json();
+        if (!response.ok) throw new Error(JSON.stringify(body.detail || body, null, 2));
+        render(body.data);
+        runStatus.textContent = "Done";
+      } catch (error) {
+        errorEl.textContent = error.message;
+        errorEl.hidden = false;
+        runStatus.textContent = "Failed";
+      } finally {
+        setBusy(false);
+      }
+    }
+
+    form.addEventListener("submit", (event) => {
+      event.preventDefault();
+      run("/api/v1/plan/generate");
+    });
+
+    runOptimizer.addEventListener("click", () => {
+      run("/api/v1/plan/debug/optimizer");
+    });
+
+    tabs.forEach((tab) => {
+      tab.addEventListener("click", () => {
+        activeView = tab.dataset.view;
+        tabs.forEach((item) => item.classList.toggle("active", item === tab));
+        renderRaw();
+      });
+    });
+
+    form.requestSubmit();
+  </script>
+</body>
+</html>

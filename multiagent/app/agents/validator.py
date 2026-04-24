@@ -1,9 +1,13 @@
 from typing import Any
 
 from app.graph.state import PlanState
+from app.services.runtime_logger import elapsed_ms, log_event, start_timer
 
 
 def validate_plan_node(state: PlanState) -> PlanState:
+    started_at = start_timer()
+    task_id = state.get("task_id", "-")
+    log_event(task_id, "validator", "start")
     requirement = state.get("analyzed_requirement", {})
     draft_plan = state.get("draft_plan", {})
     focus_areas = _as_text_list(requirement.get("focus_areas", []))
@@ -43,6 +47,14 @@ def validate_plan_node(state: PlanState) -> PlanState:
         "issues": issues,
         "suggestions": suggestions,
     }
+    log_event(
+        task_id,
+        "validator",
+        "checked",
+        passed=validation_result["passed"],
+        issue_count=len(issues),
+        suggestion_count=len(suggestions),
+    )
 
     final_plan = draft_plan if validation_result["passed"] else state.get("final_plan", {})
     trace = list(state.get("trace", []))
@@ -55,12 +67,21 @@ def validate_plan_node(state: PlanState) -> PlanState:
         }
     )
 
+    status = "validated" if validation_result["passed"] else "validation_failed"
+    log_event(
+        task_id,
+        "validator",
+        "end",
+        status=status,
+        elapsed_ms=elapsed_ms(started_at),
+    )
+
     return {
         **state,
         "validation_result": validation_result,
         "final_plan": final_plan,
         "trace": trace,
-        "status": "validated" if validation_result["passed"] else "validation_failed",
+        "status": status,
     }
 
 

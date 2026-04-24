@@ -26,6 +26,7 @@ def root() -> dict[str, str]:
     return {
         "service": "LangGraph Learning Plan Demo",
         "analyzer_demo": "/analyzer-demo",
+        "workflow_demo": "/workflow-demo",
         "generate_plan": "/api/v1/plan/generate",
         "docs": "/docs",
         "health": "/health",
@@ -35,6 +36,11 @@ def root() -> dict[str, str]:
 @app.get("/analyzer-demo", response_class=HTMLResponse)
 def analyzer_demo() -> HTMLResponse:
     return HTMLResponse((STATIC_DIR / "analyzer_demo.html").read_text(encoding="utf-8"))
+
+
+@app.get("/workflow-demo", response_class=HTMLResponse)
+def workflow_demo() -> HTMLResponse:
+    return HTMLResponse((STATIC_DIR / "workflow_demo.html").read_text(encoding="utf-8"))
 
 
 @app.get("/health")
@@ -62,4 +68,5 @@ if __name__ == "__main__":
 
     port = find_available_port(int(os.getenv("APP_PORT", "18010")))
     print(f"Analyzer demo: http://127.0.0.1:{port}/analyzer-demo")
+    print(f"Workflow demo: http://127.0.0.1:{port}/workflow-demo")
     uvicorn.run(app, host="127.0.0.1", port=port, reload=False)

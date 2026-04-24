@@ -62,13 +62,33 @@ class LLMService:
 
     @staticmethod
     def _parse_json(content: str) -> dict[str, Any]:
+        content = content.strip()
+        if content.startswith("```"):
+            lines = content.splitlines()
+            if lines and lines[0].startswith("```"):
+                lines = lines[1:]
+            if lines and lines[-1].startswith("```"):
+                lines = lines[:-1]
+            content = "\n".join(lines).strip()
+
         try:
             parsed = json.loads(content)
         except json.JSONDecodeError:
-            return {
-                "content": content,
-                "warning": "LLM response is not valid JSON",
-            }
+            start = content.find("{")
+            end = content.rfind("}")
+            if start != -1 and end != -1 and start < end:
+                try:
+                    parsed = json.loads(content[start : end + 1])
+                except json.JSONDecodeError:
+                    return {
+                        "content": content,
+                        "warning": "LLM response is not valid JSON",
+                    }
+            else:
+                return {
+                    "content": content,
+                    "warning": "LLM response is not valid JSON",
+                }
 
         if isinstance(parsed, dict):
             return parsed
