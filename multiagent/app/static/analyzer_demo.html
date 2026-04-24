@@ -1,0 +1,141 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>需求分析 Agent</title>
+  <style>
+    body { margin: 0; background: #f6f7f9; color: #20242a; font-family: Arial, "Microsoft YaHei", sans-serif; }
+    main { width: min(1100px, calc(100% - 32px)); margin: 0 auto; padding: 28px 0; }
+    header { display: flex; justify-content: space-between; align-items: end; gap: 16px; margin-bottom: 18px; }
+    h1 { margin: 0; font-size: 28px; }
+    .status, section { background: #fff; border: 1px solid #d9dee7; border-radius: 8px; }
+    .status { padding: 8px 12px; color: #667085; min-width: 112px; text-align: center; }
+    .layout { display: grid; grid-template-columns: minmax(320px, 420px) 1fr; gap: 18px; }
+    section { padding: 18px; }
+    form { display: grid; gap: 14px; }
+    label { display: grid; gap: 6px; color: #667085; font-size: 13px; }
+    input, textarea, select { width: 100%; min-height: 40px; border: 1px solid #d9dee7; border-radius: 6px; padding: 9px 10px; font: inherit; box-sizing: border-box; }
+    textarea { min-height: 76px; resize: vertical; }
+    .row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    button { min-height: 42px; border: 0; border-radius: 6px; background: #1f7a5a; color: #fff; font: inherit; font-weight: 700; cursor: pointer; }
+    button:disabled { opacity: .65; cursor: progress; }
+    .metrics { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 14px; }
+    .metric { border: 1px solid #d9dee7; border-radius: 6px; padding: 12px; background: #fbfcfd; }
+    .metric span { display: block; color: #667085; font-size: 12px; margin-bottom: 6px; }
+    .metric strong { font-size: 22px; }
+    .tags { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 14px; }
+    .tag { padding: 6px 9px; border-radius: 999px; background: #eef8f3; color: #176246; font-weight: 700; font-size: 13px; }
+    pre { min-height: 260px; max-height: 480px; overflow: auto; margin: 0; border-radius: 6px; padding: 12px; background: #111827; color: #e5e7eb; font-size: 13px; line-height: 1.5; white-space: pre-wrap; word-break: break-word; }
+    .error { color: #b42318; font-weight: 700; }
+    @media (max-width: 860px) { header, .layout, .row, .metrics { display: grid; grid-template-columns: 1fr; } main { width: min(100% - 20px, 720px); padding: 18px 0; } }
+  </style>
+</head>
+<body>
+  <main>
+    <header>
+      <h1>需求分析 Agent</h1>
+      <div class="status" id="status">Ready</div>
+    </header>
+    <div class="layout">
+      <section>
+        <form id="form">
+          <label>学习目标<textarea name="goal" required>我想在3个月内通过软考中级软件设计师考试</textarea></label>
+          <label>当前水平<textarea name="current_level" required>基础一般，做题经验少</textarea></label>
+          <div class="row">
+            <label>开始日期<input name="start_date" type="date" value="2026-03-01" required></label>
+            <label>结束日期<input name="end_date" type="date" value="2026-05-31" required></label>
+          </div>
+          <div class="row">
+            <label>每日小时<input name="daily_hours" type="number" min="0.5" step="0.5" value="2" required></label>
+            <label>计划类型<select name="plan_type"><option value="exam_preparation">考试备考</option><option value="skill_learning">技能学习</option><option value="project_practice">项目实践</option></select></label>
+          </div>
+          <label>薄弱项<input name="weak_subjects" value="算法, 系统设计"></label>
+          <label>额外约束<textarea name="extra_constraints">工作日每天2小时，周末每天4小时，每两周复盘一次</textarea></label>
+          <button id="submit" type="submit">运行分析</button>
+        </form>
+      </section>
+      <section>
+        <h2>分析结果</h2>
+        <p class="error" id="error" hidden></p>
+        <div class="metrics">
+          <div class="metric"><span>周期</span><strong id="duration">-</strong></div>
+          <div class="metric"><span>阶段数</span><strong id="phaseCount">-</strong></div>
+          <div class="metric"><span>状态</span><strong id="flowStatus">-</strong></div>
+        </div>
+        <div class="tags" id="focusAreas"></div>
+        <pre id="output">{}</pre>
+      </section>
+    </div>
+  </main>
+  <script>
+    const form = document.querySelector("#form");
+    const statusEl = document.querySelector("#status");
+    const submit = document.querySelector("#submit");
+    const errorEl = document.querySelector("#error");
+    const output = document.querySelector("#output");
+    const duration = document.querySelector("#duration");
+    const phaseCount = document.querySelector("#phaseCount");
+    const flowStatus = document.querySelector("#flowStatus");
+    const focusAreas = document.querySelector("#focusAreas");
+
+    function splitSubjects(value) {
+      return value.split(/[,\uFF0C]/).map((item) => item.trim()).filter(Boolean);
+    }
+
+    function render(data) {
+      const analyzed = data.analyzed_requirement || {};
+      duration.textContent = `${analyzed.duration_weeks ?? "-"} 周`;
+      phaseCount.textContent = analyzed.suggested_phase_count ?? "-";
+      flowStatus.textContent = data.status || "-";
+      focusAreas.innerHTML = "";
+      for (const area of analyzed.focus_areas || []) {
+        const tag = document.createElement("span");
+        tag.className = "tag";
+        tag.textContent = area;
+        focusAreas.appendChild(tag);
+      }
+      output.textContent = JSON.stringify(data, null, 2);
+    }
+
+    form.addEventListener("submit", async (event) => {
+      event.preventDefault();
+      errorEl.hidden = true;
+      statusEl.textContent = "Running";
+      submit.disabled = true;
+
+      const formData = new FormData(form);
+      const payload = {
+        goal: formData.get("goal"),
+        current_level: formData.get("current_level"),
+        start_date: formData.get("start_date"),
+        end_date: formData.get("end_date"),
+        daily_hours: Number(formData.get("daily_hours")),
+        plan_type: formData.get("plan_type"),
+        weak_subjects: splitSubjects(formData.get("weak_subjects") || ""),
+        extra_constraints: formData.get("extra_constraints") || null,
+      };
+
+      try {
+        const response = await fetch("/api/v1/analyzer/run", {
+          method: "POST",
+          headers: {"Content-Type": "application/json"},
+          body: JSON.stringify(payload),
+        });
+        const body = await response.json();
+        if (!response.ok) throw new Error(JSON.stringify(body.detail || body, null, 2));
+        render(body.data);
+        statusEl.textContent = "Done";
+      } catch (error) {
+        errorEl.textContent = error.message;
+        errorEl.hidden = false;
+        statusEl.textContent = "Failed";
+      } finally {
+        submit.disabled = false;
+      }
+    });
+
+    form.requestSubmit();
+  </script>
+</body>
+</html>
