@@ -448,7 +448,7 @@ def call_deepseek(question: str, context_text: str) -> str:
         raise RuntimeError("DeepSeek 配置不完整。")
 
     llm = ChatOpenAI(
-        model="deepseek-chat",
+        model="deepseek-v4-flash",
         api_key=DEEPSEEK_API_KEY,
         base_url=DEEPSEEK_API_BASE_URL,
         temperature=0,
